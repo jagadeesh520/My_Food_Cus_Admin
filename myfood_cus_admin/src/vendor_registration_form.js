@@ -16,9 +16,7 @@ const VendorForm = () => {
     current_Add_Location: '',
     add_Proof_Name: '',
     add_proof_att: null,
-    items: []
   });
-
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
 
@@ -64,7 +62,7 @@ const VendorForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!vendorData.country && !vendorData.house_no && !vendorData.landmark && !vendorData.pincode) {
+    if (!vendorData.country || !vendorData.house_no || !vendorData.landmark || !vendorData.pincode) {
       setError('Complete address must be provided.');
       return;
     }
@@ -73,6 +71,38 @@ const VendorForm = () => {
       setError('Already Entered Item with this Name.');
       return;
     }
+
+    const personalInfo = {
+      firstname: vendorData.firstname,
+      lastname: vendorData.lastname,
+      email: vendorData.email,
+      contact_no: vendorData.contact_no,
+    };
+
+    const addressData = {
+      country: vendorData.country,
+      house_no: vendorData.house_no,
+      landmark: vendorData.landmark,
+      pincode: vendorData.pincode,
+      state: vendorData.state,
+      street_name: vendorData.street_name,
+      current_Add_Location: vendorData.current_Add_Location,
+      add_Proof_Name: vendorData.add_Proof_Name,
+      add_proof_att: vendorData.add_proof_att,
+    };
+
+    const itemData = items.map(item => ({
+      title: item.title,
+      cost: item.cost,
+      image: item.image,
+      available: item.available,
+    }));
+
+    console.log('Personal Info:', personalInfo);
+    console.log('Address Data:', addressData);
+    console.log('Items:', itemData);
+
+    setError('');
 
     const formData = new FormData();
     formData.append('firstname', vendorData.firstname);
@@ -96,11 +126,12 @@ const VendorForm = () => {
     });
 
     try {
-      const response = await fetch('http://223.187.8.49:5000/vendor-registration', {  // Updated URL
+      const response = await fetch('http://localhost:5000/api/vendors/vendor-registration', {
         method: 'POST',
         body: formData,
       });
       const result = await response.text();
+      console.log('Server response:', result);
       alert(result);
     } catch (error) {
       console.error('Error:', error);
@@ -260,116 +291,94 @@ const VendorForm = () => {
           fullWidth
           sx={{ marginTop: 2 }}
         >
-          {vendorData.add_proof_att ? vendorData.add_proof_att.name : "Upload Address Proof"}
+          {vendorData.add_proof_att ? 'Address Proof Uploaded' : 'Upload Address Proof'}
           <input
             type="file"
             name="add_proof_att"
-            accept=".pdf,.jpg"
             hidden
             onChange={handleFileChange}
-            required
           />
         </Button>
 
         <Typography variant="h6" gutterBottom sx={{ marginTop: 3 }}>Items</Typography>
         {items.map((item, index) => (
-          <Grid container spacing={2} key={index} sx={{ marginBottom: 2 }}>
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                label="Item Name"
-                name="title"
-                variant="outlined"
-                margin="normal"
-                value={item.title}
+          <Box key={index} sx={{ marginBottom: 3 }}>
+            <TextField
+              fullWidth
+              label="Item Title"
+              name="title"
+              variant="outlined"
+              margin="normal"
+              value={item.title}
+              onChange={(e) => handleItemChange(index, e)}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Item Cost"
+              name="cost"
+              variant="outlined"
+              margin="normal"
+              value={item.cost}
+              onChange={(e) => handleItemChange(index, e)}
+              required
+            />
+            <Button
+              variant="outlined"
+              component="label"
+              fullWidth
+              sx={{ marginBottom: 2 }}
+            >
+              {item.image ? 'Item Image Uploaded' : 'Upload Item Image'}
+              <input
+                type="file"
+                name="image"
+                hidden
                 onChange={(e) => handleItemChange(index, e)}
-                required
-                disabled={!item.available}
               />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                label="Item Cost"
-                name="cost"
-                variant="outlined"
-                margin="normal"
-                type="number"
-                value={item.cost}
-                onChange={(e) => handleItemChange(index, e)}
-                required
-                disabled={!item.available}
-              />
-            </Grid>
-            <Grid item xs={3}>
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                sx={{ marginTop: 2 }}
-                disabled={!item.available}
-              >
-                {item.image ? item.image.name : "Upload Image"}
-                <input
-                  type="file"
-                  name="image"
-                  accept=".jpg,.png"
-                  hidden
-                  onChange={(e) => handleItemChange(index, e)}
-                  disabled={!item.available}
+            </Button>
+
+            <Grid container alignItems="center" spacing={2}>
+              <Grid item>
+                <Switch
+                  checked={item.available}
+                  onChange={() => toggleItemAvailability(index)}
                 />
-              </Button>
+              </Grid>
+              <Grid item>
+                <Typography>{item.message}</Typography>
+              </Grid>
+              <Grid item>
+                <Button variant="contained" color="error" onClick={() => deleteItem(index)}>
+                  Delete
+                </Button>
+              </Grid>
             </Grid>
-            <Grid item xs={1}>
-              <Switch
-                checked={item.available}
-                onChange={() => toggleItemAvailability(index)}
-                color="primary"
-                sx={{ marginTop: 2 }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Typography color={item.available ? 'green' : 'red'} variant="body2">
-                {item.message}
-              </Typography>
-            </Grid>
-            <Grid item xs={1}>
-              <Button
-                variant="contained"
-                color="error"
-                sx={{ marginTop: 2 }}
-                onClick={() => deleteItem(index)}
-              >
-                Delete
-              </Button>
-            </Grid>
-          </Grid>
+          </Box>
         ))}
 
         <Button
           variant="contained"
-          color="primary"
           onClick={addItem}
-          sx={{ marginTop: 2, marginBottom: 2 }}
+          sx={{ marginBottom: 3 }}
         >
           Add Item
         </Button>
-
-        {error && (
-          <Typography color="error" variant="body2">
-            {error}
-          </Typography>
-        )}
 
         <Button
           type="submit"
           variant="contained"
           color="primary"
           fullWidth
-          sx={{ marginTop: 2 }}
         >
           Submit
         </Button>
+
+        {error && (
+          <Typography color="error" sx={{ marginTop: 2 }}>
+            {error}
+          </Typography>
+        )}
       </form>
     </Box>
   );
